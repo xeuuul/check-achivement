@@ -1,62 +1,58 @@
 import streamlit as st
 import pandas as pd
 
-# 앱 제목 설정
-st.set_page_config(page_title="My Goal Tracker", page_icon="🎯")
-st.title("🎯 Welcome!")
-st.markdown("나의 목표를 설정하고 한 걸음씩 나아가보세요!")
+st.set_page_config(page_title="Grade Manager", page_icon="📈", layout="wide")
+st.title("📈 성적 관리 대시보드")
 
-# 사이드바에서 목표 설정
+if 'data' not in st.session_state:
+    st.session_state.data = pd.DataFrame(columns=["학년", "시험", "과목", "점수"])
+
 with st.sidebar:
-    st.header("새로운 목표 설정")
-    goal_name = st.text_input("목표 이름", placeholder="예: 파이썬 공부하기")
-    target_value = st.number_input("최종 목표 수치", min_value=1, value=100)
-    add_btn = st.button("목표 추가하기")
-
-# 데이터 저장 (세션 상태 활용)
-if 'goals' not in st.session_state:
-    st.session_state.goals = []
-
-if add_btn and goal_name:
-    st.session_state.goals.append({
-        "name": goal_name,
-        "target": target_value,
-        "current": 0
-    })
-    st.success(f"'{goal_name}' 목표가 생성되었습니다!")
-
-# 등록된 목표 표시
-if st.session_state.goals:
+    st.header("📝 점수 입력")
+    grade = st.selectbox("학년", ["1학년", "2학년", "3학년"])
+    exam_type = st.selectbox("시험 종류", ["1학기 중간", "1학기 기말", "2학기 중간", "2학기 기말"])
+    
     st.divider()
-    for i, goal in enumerate(st.session_state.goals):
-        cols = st.columns([3, 2, 1])
-        
-        with cols[0]:
-            st.subheader(goal['name'])
-            
-        with cols[1]:
-            # 진행도 업데이트
-            new_val = st.number_input(f"현재 진행도 ({goal['name']})", 
-                                      min_value=0, 
-                                      max_value=goal['target'], 
-                                      value=goal['current'], 
-                                      key=f"input_{i}")
-            st.session_state.goals[i]['current'] = new_val
-            
-        with cols[2]:
-            if st.button("삭제", key=f"del_{i}"):
-                st.session_state.goals.pop(i)
-                st.rerun()
+    
+    new_scores = {}
+    subjects = ["국어", "수학", "영어", "과학", "사회"]
+    for sub in subjects:
+        new_scores[sub] = st.number_input(f"{sub} 점수", min_value=0, max_value=100, value=0, key=f"{grade}_{exam_type}_{sub}")
+    
+    add_btn = st.button("성적 기록하기")
 
-        # 진행률 계산 및 그래프
-        progress = goal['current'] / goal['target']
-        st.progress(progress)
-        st.write(f"달성률: {progress*100:.1f}% ({goal['current']} / {goal['target']})")
+if add_btn:
+    for sub, score in new_scores.items():
+        mask = (st.session_state.data["학년"] == grade) & \
+               (st.session_state.data["시험"] == exam_type) & \
+               (st.session_state.data["과목"] == sub)
         
-        if progress >= 1.0:
-            st.balloons()
-            st.emoji("🎉 축하합니다! 목표를 달성했어요!")
-        st.divider()
+        if any(mask):
+            st.session_state.data.loc[mask, "점수"] = score
+        else:
+            new_row = pd.DataFrame({"학년": [grade], "시험": [exam_type], "과목": [sub], "점수": [score]})
+            st.session_state.data = pd.concat([st.session_state.data, new_row], ignore_index=True)
+    st.success(f"{grade} {exam_type} 성적이 저장되었습니다!")
+
+if not st.session_state.data.empty:
+    st.subheader("📊 과목별 성적 추이")
+    chart_data = st.session_state.data.pivot_table(index=["학년", "시험"], columns="과목", values="점수", aggfunc='first')
+    st.line_chart(chart_data)
+
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("📑 전체 성적표")
+        pivot_df = st.session_state.data.pivot_table(index=["학년", "시험"], columns="과목", values="점수").reset_index()
+        st.dataframe(pivot_df, use_container_width=True)
+
+    with col2:
+        st.subheader("🔢 과목별 평균 점수")
+        avg_scores = st.session_state.data.groupby("과목")["점수"].mean().reset_index()
+        st.table(avg_scores.style.format({"점수": "{:.1f}점"}))
+
+    if st.button("데이터 초기화"):
+        st.session_state.data = pd.DataFrame(columns=["학년", "시험", "과목", "점수"])
+        st.rerun()
 else:
-
-    st.info("아직 등록된 목표가 없습니다. 왼쪽 사이드바에서 첫 번째 목표를 세워보세요!")
+    st.info("왼쪽 사이드바에서 성적을 입력하고 '성적 기록하기' 버튼을 눌러주세요.")

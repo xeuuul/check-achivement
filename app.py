@@ -37,7 +37,10 @@ if add_btn:
 if not st.session_state.data.empty:
     st.subheader("📊 과목별 성적 추이")
     chart_data = st.session_state.data.pivot_table(index=["학년", "시험"], columns="과목", values="점수", aggfunc='first')
-    st.line_chart(chart_data)
+    
+    # 에러 방지: 데이터가 유효할 때만 그래프 출력
+    if not chart_data.empty:
+        st.line_chart(chart_data)
 
     col1, col2 = st.columns([2, 1])
     

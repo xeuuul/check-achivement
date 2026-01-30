@@ -49,4 +49,30 @@ if not st.session_state.data.empty:
     st.subheader("📊 과목별 성적 추이")
     
     chart_df = st.session_state.data.copy()
-    chart_df["시험명"] = chart_df["학년"] + " " + chart_df["
+    chart_df["시험명"] = chart_df["학년"] + " " + chart_df["시험"]
+    chart_pivot = chart_df.pivot(index="시험명", columns="과목", values="점수")
+    
+    if not chart_pivot.empty:
+        st.line_chart(chart_pivot)
+
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("📑 전체 성적표")
+        display_df = st.session_state.data.pivot_table(index=["학년", "시험"], columns="과목", values="점수").reset_index()
+        st.dataframe(display_df, use_container_width=True)
+
+    with col2:
+        st.subheader("🔢 과목별 평균 점수")
+        avg_scores = st.session_state.data.groupby("과목")["점수"].mean().reset_index()
+        st.table(avg_scores.style.format({"점수": "{:.1f}점"}))
+
+    if st.button("전체 초기화"):
+        st.session_state.data = pd.DataFrame(columns=["학년", "시험", "과목", "점수"])
+        st.session_state.subject_list = []
+        st.rerun()
+else:
+    if not st.session_state.subject_list:
+        st.info("먼저 왼쪽 사이드바에서 과목을 추가해주세요!")
+    else:
+        st.info("과목 점수를 입력하고 '성적 기록하기'를 눌러주세요.")

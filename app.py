@@ -3,7 +3,7 @@ import pandas as pd
 
 st.set_page_config(page_title="My Grade Dashboard", page_icon="📊", layout="wide")
 
-st.title("📊 나만의 성적 관리 대시보드")
+st.title("📊 성적 관리 대시보드")
 st.markdown("과목을 추가하고 시험 성적을 그래프로 비교해보세요.")
 
 if 'data' not in st.session_state:
@@ -85,3 +85,4 @@ else:
         st.info("왼쪽 사이드바에서 과목을 먼저 추가해주세요!")
     else:
         st.info("점수를 입력하고 '성적 저장' 버튼을 누르면 그래프가 나타납니다.")
+
